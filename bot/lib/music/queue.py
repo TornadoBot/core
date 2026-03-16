@@ -2,6 +2,7 @@ from asyncio import Queue
 from collections import deque
 from itertools import islice
 from random import shuffle
+from typing import Iterator
 
 from lib.music.song import Song
 
@@ -15,12 +16,12 @@ class SongQueue(Queue):
     def __repr__(self) -> str:
         return f"<SongQueue maxsize={self.maxsize} qsize={self.qsize()}>"
 
-    def __getitem__(self, item: int) -> Song | list[Song]:
+    def __getitem__(self, item: int | slice) -> Song | list[Song]:
         if isinstance(item, slice):
             return list(islice(self._queue, item.start, item.stop, item.step))
         return self._queue[item]
 
-    def __iter__(self) -> iter:
+    def __iter__(self) -> Iterator[Song]:
         return iter(self._queue)
 
     def __len__(self) -> int:
@@ -49,4 +50,4 @@ class SongQueue(Queue):
 
     @property
     def duration(self) -> int:
-        return sum(song.duration for song in self._queue)
+        return sum(song.duration or 0 for song in self._queue)

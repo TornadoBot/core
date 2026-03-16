@@ -6,7 +6,7 @@ from cogs.music import Music
 from lib.contexts import CustomApplicationContext
 from lib.db.db_classes import GuildSettings
 from lib.enums import SongEmbedSize
-from lib.music.audio_player import AudioPlayer
+from lib.music.player import AudioPlayer
 
 
 class Configuration(Cog):

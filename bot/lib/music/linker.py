@@ -16,23 +16,21 @@ class Linker:
 
         self._limiter = AsyncLimiter(max_rate=10, time_period=60)
 
-    async def get_tidal_id(self, url: str) -> str:
+    async def fetch_tidal(self, url: str) -> dict:
         async with self._limiter:
-            return await self._request(url)
+            data = await self._request(url)
+            key: str = [k.startswith("TIDAL_SONG::") for k in data.keys()][0]
+            return data[key]
 
     @staticmethod
-    async def _request(url: str) -> str:
+    async def _request(url: str) -> dict:
         async with ClientSession().get(
                 f"https://api.song.link/v1-alpha.1/links?url={url}"
         ) as response:
-            if response.status != 200:
-                raise Exception("Failed to extract Tidal ID")
-
-            data: dict = await response.json()
-
             try:
-                key: str = [k.startswith("TIDAL_SONG::") for k in data.keys()][0]
-                return data[key]["id"]
+                if response.status != 200:
+                    raise Exception("Failed to extract data from Tidal")
+                return await response.json()
             except (KeyError, IndexError):
-                raise Exception("Failed to extract Tidal ID")
+                raise Exception("Failed to extract data from Tidal")
 

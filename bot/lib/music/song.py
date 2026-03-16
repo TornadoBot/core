@@ -1,27 +1,24 @@
 from typing import Self
 from urllib.parse import urlparse
 
-from discord import Member, Embed
+from discord import Member, Embed, EmbedAuthor
 
 from lib.enums import SongEmbedSize, AudioPlayerLoopMode
-from lib.utils import format_time, shortened, truncate
+from lib.music.source import TidalSource
+from lib.utils import format_time, truncate
 
 
 class Song:
-    """
-    Class to represent a song
-    """
-
-    def __init__(self, source, requester: Member = None) -> None:
-        if isinstance(source, Track):
+    def __init__(self, source: TidalSource | str, requester: Member = None) -> None:
+        if isinstance(source, str):
             if not requester:
-                raise ValueError("Requester must be provided when creating a Song from a Track")
+                raise ValueError("Requester must be provided when creating a Song from url")
 
         self._source = source
-        self._requester = requester or source.requester
+        self._requester = requester
 
     @property
-    def source(self) -> YTDLSource | Track:
+    def source(self) -> TidalSource | str:
         """
         It is recommended to use the properties of this class instead of this property
         :return: The source of the song.
@@ -29,7 +26,7 @@ class Song:
         return self._source
 
     @source.setter
-    def source(self, source: YTDLSource | Track) -> None:
+    def source(self, source: TidalSource | str) -> None:
         """
         Can be used to change the source of the song.
 
@@ -41,39 +38,47 @@ class Song:
     @property
     def requester(self) -> Member:
         """
-        :return: The member who requested the song.
+        :return: The user who requested the song.
         """
-        return self._requester
+        if isinstance(self.source, str):
+            return self._requester
+        return self._source.requester
 
     @property
-    def title(self) -> str:
+    def title(self) -> str | None:
         """
         :return: The title of the song.
         """
-        return self.source.name
+        if isinstance(self.source, str):
+            return None
+        return self._source.title
 
     @property
-    def artist(self) -> str:
+    def artist(self) -> str | None:
         """
         :return: The artist of the song.
         """
-        if isinstance(self.source, YTDLSource):
-            return self.source.artist
-        return self.source.artists[0].name
+        if isinstance(self.source, str):
+            return None
+        return self._source.artist
 
     @property
     def url(self) -> str:
         """
         :return: The url of the song.
         """
-        return self.source.url
+        if isinstance(self.source, str):
+            return self._source
+        return self._source.url
 
     @property
-    def duration(self) -> int:
+    def duration(self) -> int | None:
         """
         :return: The duration of the song in seconds.
         """
-        return self.source.duration
+        if isinstance(self.source, str):
+            return None
+        return 0
 
     def get_embed(
             self,
@@ -98,18 +103,25 @@ class Song:
         :return: `discord.Embed`
         """
 
+        if isinstance(self.source, str):
+            return Embed(
+                author=EmbedAuthor(
+                    name="The current song is currently being processed.",
+                )
+            )
+
         embed: Embed = Embed(
             title=self.title,
-            color=0xFF0000
+            color=0x1ed760
         )
         if progress:
-            elapsed_time: int = int(self.source.duration * progress)
-            duration = f"{format_time(elapsed_time)} **/** {format_time(self.source.duration)}"
+            elapsed_time: int = int(self.duration * progress)
+            duration = f"{format_time(elapsed_time)} **/** {format_time(self.duration)}"
         else:
-            duration = format_time(self.source.duration)
+            duration = format_time(self.duration)
 
         description: str = (
-            f"[URL]({self.source.url}) **|** [{self.source.artist}]({self.source.uploader_url}) **|** "
+            f"[URL]({self.source.url}) **|** [{self.source.artist}]({self.url}) **|** "
             f"{duration} **|** {self.requester.mention}"
         )
         embed.description = description
@@ -118,28 +130,12 @@ class Song:
             return embed
         embed.set_thumbnail(url=self.source.thumbnail_url)
 
-        name: str = ""
-        value: str = ""
-        if self.source.views is not None:
-            name += "Views"
-            value += f"{shortened(self.source.views)}"
-        if self.source.likes is not None:
-            name += " / Likes"
-            value += f" **/** {shortened(self.source.likes)}"
-
-        if name and value:
-            embed.add_field(name=name, value=value)
-
         embed.add_field(
             name="Loop",
             value={
                 AudioPlayerLoopMode.NONE: "Disabled",
                 AudioPlayerLoopMode.QUEUE: "Queue",
                 AudioPlayerLoopMode.SONG: "Song"}[loop]
-        )
-        embed.add_field(
-            name="Uploaded",
-            value=f"<t:{self.source.upload_date.timestamp():.0f}:R>"
         )
 
         if not len(queue) or size == SongEmbedSize.NO_QUEUE:

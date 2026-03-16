@@ -6,7 +6,7 @@ from discord.ext.commands import Cog
 from bot.bot import TornadoBot
 from lib.contexts import CustomApplicationContext
 from lib.db.db_classes import GuildSettings, Emoji, UserStats
-from lib.logging import log
+from lib.logger import log
 from lib.stats_view import generate_stats_card
 from lib.welcome_message import generate_welcome_message_card
 

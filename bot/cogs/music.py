@@ -13,11 +13,11 @@ from bot.bot import TornadoBot
 from lib.contexts import CustomApplicationContext
 from lib.db.db_classes import Emoji
 from lib.exceptions import YouTubeNotEnabled, NotEnoughVotes
-from lib.logging import save_traceback
-from lib.music.audio_player import AudioPlayer
+from lib.logger import save_traceback
+from lib.music.player import AudioPlayer
 from lib.music.auto_complete import complete
 from lib.music.embeds import YOUTUBE_NOT_ENABLED
-from lib.music.extractor import YTDLSource
+from lib.music.source import YTDLSource
 from lib.music.song import Song
 from lib.music.views import QueueFill, LoopView
 from lib.spotify.artist import Artist

@@ -5,7 +5,7 @@ from discord.ui import View, Button
 from lib.contexts import CustomApplicationContext
 from lib.db.db_classes import Emoji
 from lib.enums import AudioPlayerLoopMode
-from lib.music.audio_player import AudioPlayer
+from lib.music.player import AudioPlayer
 
 from lib.spotify.track_collection import TrackCollection
 from lib.utils import random_hex
