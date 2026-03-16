@@ -10,19 +10,6 @@ from lib.logging import log
 def main() -> None:
     """Main entry point of the program."""
 
-    # Load environment variables from .env file
-    try:
-        with open("./config/.env", "r") as file:
-            for line in file.readlines():
-                key, value = line.strip().split("=", 1)
-                key, value = key.strip(), value.strip()
-
-                if key not in environ:
-                    environ[key] = value
-    except FileNotFoundError:
-        log("No .env file found. Create one in the config folder.", error=True)
-        return
-
     # Check if all environment variables are present
     if not all(key in environ for key in ["DISCORD_TOKEN", "SPOTIFY_CLIENT_ID", "SPOTIFY_CLIENT_SECRET"]):
         log("Not all environment variables found. Check your .env file.", error=True)
@@ -34,7 +21,7 @@ def main() -> None:
     )
 
     # Load cogs
-    for cog in listdir('./cogs'):
+    for cog in listdir('cogs'):
         if cog.endswith('.py') and not cog.startswith('_'):
             bot.load_extension(f'cogs.{cog[:-3]}')
 

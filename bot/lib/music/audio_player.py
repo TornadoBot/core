@@ -10,7 +10,7 @@ from lib.db.db_classes import Emoji, UserStats
 from lib.enums import AudioPlayerLoopMode, SongEmbedSize
 from lib.exceptions import NotEnoughVotes
 from lib.logging import log, save_traceback
-from lib.music.extraction import YTDLSource
+from lib.music.extractor import YTDLSource
 from lib.music.queue import SongQueue
 from lib.music.song import Song
 from lib.spotify.track import Track

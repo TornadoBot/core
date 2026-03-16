@@ -4,7 +4,7 @@ from discord import Message, slash_command, Option, Member, Forbidden, HTTPExcep
 from discord.ext.commands import Cog
 from pyrate_limiter import Limiter, RequestRate, Duration, BucketFullException
 
-from bot import TornadoBot
+from bot.bot import TornadoBot
 from lib.contexts import CustomApplicationContext
 from lib.db.db_classes import LevelingStats, Emoji
 from lib.leveling.calculation import xp_to_level

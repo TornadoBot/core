@@ -3,7 +3,7 @@ from datetime import datetime
 from discord import Guild, Member, Embed, Forbidden, HTTPException, VoiceState, slash_command
 from discord.ext.commands import Cog
 
-from bot import TornadoBot
+from bot.bot import TornadoBot
 from lib.contexts import CustomApplicationContext
 from lib.db.db_classes import GuildSettings, Emoji, UserStats
 from lib.logging import log

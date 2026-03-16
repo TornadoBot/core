@@ -4,8 +4,6 @@ from urllib.parse import urlparse
 from discord import Member, Embed
 
 from lib.enums import SongEmbedSize, AudioPlayerLoopMode
-from lib.music.extraction import YTDLSource
-from lib.spotify.track import Track
 from lib.utils import format_time, shortened, truncate
 
 
@@ -14,7 +12,7 @@ class Song:
     Class to represent a song
     """
 
-    def __init__(self, source: YTDLSource | Track, requester: Member = None) -> None:
+    def __init__(self, source, requester: Member = None) -> None:
         if isinstance(source, Track):
             if not requester:
                 raise ValueError("Requester must be provided when creating a Song from a Track")

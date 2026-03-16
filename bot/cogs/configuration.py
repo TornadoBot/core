@@ -1,7 +1,7 @@
 from discord import SlashCommandGroup, Permissions, Option, TextChannel
 from discord.ext.commands import Cog
 
-from bot import TornadoBot
+from bot.bot import TornadoBot
 from cogs.music import Music
 from lib.contexts import CustomApplicationContext
 from lib.db.db_classes import GuildSettings
