@@ -1,5 +1,6 @@
 from json import dumps, loads
 from os import environ
+from urllib.parse import quote
 
 from aiohttp import ClientSession
 from aiolimiter import AsyncLimiter
@@ -23,7 +24,9 @@ class Linker:
 
         self._limiter = AsyncLimiter(max_rate=10, time_period=60)
         self._redis = Redis(host=REDIS_HOST, port=6379)
-        self._session = ClientSession()
+        self._session = ClientSession(
+            headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"}
+        )
         self._initialized = True
 
     async def fetch_tidal(self, url: str) -> dict:
@@ -31,7 +34,7 @@ class Linker:
             data = loads(data)
         else:
             async with self._limiter:
-                data = await self._request(url)
+                data = await self._request(quote(url))
             await self._redis.set(url, dumps(data))
 
         data = data["entitiesByUniqueId"]

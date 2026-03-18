@@ -73,7 +73,7 @@ class TidalSource(PCMVolumeTransformer):
 
     @classmethod
     async def from_url(cls, url: str, requester: Member) -> "TidalSource":
-        tidal_entry: dict = await Linker().fetch_tidal(quote(url))
+        tidal_entry: dict = await Linker().fetch_tidal(url)
 
         for service in STREAM_SERVICES:
             async with ClientSession().get(

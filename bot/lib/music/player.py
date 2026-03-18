@@ -89,7 +89,7 @@ class Player:
                 song = Song(source)
 
             self._current = song
-            self._voice.play((song.source, song.requester), after=self._prepare_next)
+            self._voice.play(song.source, after=self._prepare_next)
             self.message = await self.send(embed=song.get_embed(self._loop, self._queue[:5]))
             await self._event.wait()
 
