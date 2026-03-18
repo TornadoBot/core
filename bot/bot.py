@@ -1,30 +1,33 @@
 from asyncio import QueueFull
 from datetime import datetime
-from os import environ
+from socket import AF_INET
 from typing import Any
 
-from discord import Bot, Interaction, ApplicationContext, ApplicationCommandInvokeError, Forbidden, HTTPException, \
-    Activity, ActivityType
+from aiohttp import TCPConnector
+from discord import Bot, Interaction, ApplicationContext, ApplicationCommandInvokeError, Activity, ActivityType
 from discord.ext.tasks import loop
 
 from config.settings import SETTINGS
-from lib.db.database import Database
-from lib.db.db_classes import Emoji
-from lib.emoji_loader import load_emojis
-from lib.logging import log, save_traceback
-from lib.spotify.api import SpotifyAPI
-from lib.utils import random_hex, shortened
+# from lib.db.database import Database
+from lib.logger import get_logger
+# from lib.logging import log, save_traceback
+# from lib.spotify.api import SpotifyAPI
+from lib.utils import shortened
+
+log = get_logger(__name__)
 
 
 class TornadoBot(Bot):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-
+        # connector hier NICHT erstellen
         self._uptime = None
         self._settings = SETTINGS
-        self._spotify = SpotifyAPI(environ["SPOTIFY_CLIENT_ID"], environ["SPOTIFY_CLIENT_SECRET"])
-        self._database = Database("./data/database.sqlite", self.loop)
-        self.presence_loop.start()
+
+    async def setup_hook(self) -> None:
+        connector = TCPConnector(family=AF_INET)
+        self.http.connector = connector
+
 
     @property
     def uptime(self) -> datetime | None:
@@ -36,15 +39,15 @@ class TornadoBot(Bot):
         """Returns the settings dictionary."""
         return self._settings
 
-    @property
-    def spotify(self) -> SpotifyAPI:
-        """Returns the Spotify API instance."""
-        return self._spotify
+    # @property
+    # def spotify(self) -> SpotifyAPI:
+    #     """Returns the Spotify API instance."""
+    #     return self._spotify
 
-    @property
-    def database(self) -> Database:
-        """Returns the database instance."""
-        return self._database
+    # @property
+    # def database(self) -> Database:
+    #     """Returns the database instance."""
+    #     return self._database
 
     @loop(minutes=5)
     async def presence_loop(self) -> None:
@@ -58,30 +61,30 @@ class TornadoBot(Bot):
         )
 
     async def on_ready(self) -> None:
-        self._uptime = datetime.utcnow()
+        # self._uptime = datetime.utcnow()
+        #
+        # try:
+        #     await load_emojis(self.database, self.guilds)
+        # except ValueError:
+        #     log("No valid emoji guilds found. Creating new guild...")
+        #     try:
+        #         guild = await self.create_guild(name=random_hex(6))
+        #     except (Forbidden, HTTPException):
+        #         log("Failed to create new emoji guild", error=True)
+        #     else:
+        #         await self.database.add_emoji_guild(guild.id)
+        #         log(f"Created new emoji guild {guild.name} ({guild.id})")
+        #         await load_emojis(self.database, self.guilds)
+        log.info(f"Logged in as {self.user.name} ({self.user.id})")
 
-        try:
-            await load_emojis(self.database, self.guilds)
-        except ValueError:
-            log("No valid emoji guilds found. Creating new guild...")
-            try:
-                guild = await self.create_guild(name=random_hex(6))
-            except (Forbidden, HTTPException):
-                log("Failed to create new emoji guild", error=True)
-            else:
-                await self.database.add_emoji_guild(guild.id)
-                log(f"Created new emoji guild {guild.name} ({guild.id})")
-                await load_emojis(self.database, self.guilds)
-        log(f"Logged in as {self.user.name} ({self.user.id})")
+    # async def on_interaction(self, interaction: Interaction) -> None:
+    #     log.info(f"Received interaction {interaction.id} from {interaction.user.name} ({interaction.user.id})")
+    #     await self.process_application_commands(interaction, auto_sync=None)
 
-    async def on_interaction(self, interaction: Interaction) -> None:
-        log(f"Received interaction {interaction.id} from {interaction.user.name} ({interaction.user.id})")
-        await self.process_application_commands(interaction, auto_sync=None)
-
-        if interaction.is_command():
-            user_stats = await self.database.get_user_stats(interaction.user.id)
-            user_stats.commands_used += 1
-            await self.database.set_user_stats(user_stats)
+        # if interaction.is_command():
+        #     user_stats = await self.database.get_user_stats(interaction.user.id)
+        #     user_stats.commands_used += 1
+        #     await self.database.set_user_stats(user_stats)
 
     async def on_application_command_error(
             self,
@@ -89,13 +92,13 @@ class TornadoBot(Bot):
             exception: ApplicationCommandInvokeError
     ) -> None:
 
-        emoji_cross: Emoji = await self.database.get_emoji("cross")
+        # emoji_cross: Emoji = await self.database.get_emoji("cross")
         if isinstance(exception.original, QueueFull):
-            await ctx.respond(f"{emoji_cross} **Queue is full.**")
+            await ctx.respond("{emoji_cross} **Queue is full.**")
             return
 
-        log(f"Error while processing interaction {ctx.interaction.id}: {exception.original}", error=True)
+        log.error(f"Error while processing interaction {ctx.interaction.id}: {exception.original}")
         await ctx.respond(
-            f"{emoji_cross} **Error** while **processing command**: `{exception.original.__class__.__name__}`"
+            "{emoji_cross} **Error** while **processing command**: `{exception.original.__class__.__name__}`"
         )
-        await save_traceback(exception)
+        raise exception.original

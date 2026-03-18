@@ -3,6 +3,7 @@ from collections import deque
 from typing import Any
 
 from discord import Message, Forbidden, HTTPException, NotFound
+from discord.voice import VoiceClient
 
 from lib.contexts import CustomApplicationContext
 from lib.enums import AudioPlayerLoopMode
@@ -30,6 +31,9 @@ class Player:
 
         self._task = create_task(self._run())
 
+    def __bool__(self) -> bool:
+        return self.active
+
     @property
     def active(self) -> bool:
         return self._task is not None and not self._task.done()
@@ -47,6 +51,24 @@ class Player:
                 pass
         self._message = message
 
+    @property
+    def voice(self) -> VoiceClient:
+        return self._voice
+
+    @voice.setter
+    def voice(self, voice: VoiceClient) -> None:
+        self._voice = voice
+
+    def put(self, song: Song) -> None:
+        self._queue.put_nowait(song)
+
+    def cleanup(self) -> None:
+        self._queue.clear()
+        self._voice.stop()
+        create_task(self._voice.disconnect())
+        if self.active:
+            self._task.cancel()
+
     async def _run(self) -> None:
         while True:
             self._event.clear()
@@ -62,7 +84,7 @@ class Player:
                 try:
                     source = await TidalSource.from_url(song.source, song.requester)
                 except Exception as e:
-                    log.error(f"Failed to play song: {e}")
+                    log.error(f"Failed to fetch source: {e}")
                     continue
                 song = Song(source)
 

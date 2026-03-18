@@ -1,9 +1,16 @@
+from json import dumps, loads
+from os import environ
+
 from aiohttp import ClientSession
 from aiolimiter import AsyncLimiter
+from redis.asyncio import Redis
+
+REDIS_HOST = environ.get("REDIS_HOST") or "127.0.0.1"
 
 
 class Linker:
     _instance: "Linker" = None
+    _initialized: bool = False
 
     def __new__(cls, *args, **kwargs) -> "Linker":
         if cls._instance is None:
@@ -11,25 +18,33 @@ class Linker:
         return cls._instance
 
     def __init__(self) -> None:
-        if self._instance is not None:
+        if self._initialized:
             return
 
         self._limiter = AsyncLimiter(max_rate=10, time_period=60)
+        self._redis = Redis(host=REDIS_HOST, port=6379)
+        self._session = ClientSession()
+        self._initialized = True
 
     async def fetch_tidal(self, url: str) -> dict:
-        async with self._limiter:
-            data = await self._request(url)
-            key: str = [k.startswith("TIDAL_SONG::") for k in data.keys()][0]
-            return data[key]
+        if data := await self._redis.get(url):
+            data = loads(data)
+        else:
+            async with self._limiter:
+                data = await self._request(url)
+            await self._redis.set(url, dumps(data))
 
-    @staticmethod
-    async def _request(url: str) -> dict:
-        async with ClientSession().get(
+        data = data["entitiesByUniqueId"]
+        key: str = [k for k in data.keys() if k.startswith("TIDAL_SONG::")][0]
+        return data[key]
+
+    async def _request(self, url: str) -> dict:
+        async with self._session.get(
                 f"https://api.song.link/v1-alpha.1/links?url={url}"
         ) as response:
             try:
                 if response.status != 200:
-                    raise Exception("Failed to extract data from Tidal")
+                    raise Exception(f"Song link response status {response.status}")
                 return await response.json()
             except (KeyError, IndexError):
                 raise Exception("Failed to extract data from Tidal")

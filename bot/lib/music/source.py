@@ -1,5 +1,7 @@
 from base64 import b64decode
 from json import loads
+from os import environ
+from urllib.parse import quote
 
 from aiohttp import ClientSession
 from discord import PCMVolumeTransformer, Member, FFmpegPCMAudio
@@ -16,12 +18,13 @@ STREAM_SERVICES: list[str] = [
     "https://tidal.kinoplus.online",
 ]
 
+TOR_HOST = environ.get("TOR_HOST") or "127.0.0.1"
 FFMPEG_OPTIONS = {
     "before_options": (
         "-reconnect 1 "
         "-reconnect_streamed 1 "
         "-reconnect_delay_max 5 "
-        "-http_proxy socks5h://tor:9050"
+        f"-http_proxy socks5h://{TOR_HOST}:9050"
     ),
     'options': '-vn'
 }
@@ -70,7 +73,7 @@ class TidalSource(PCMVolumeTransformer):
 
     @classmethod
     async def from_url(cls, url: str, requester: Member) -> "TidalSource":
-        tidal_entry: dict = await Linker().fetch_tidal(url)
+        tidal_entry: dict = await Linker().fetch_tidal(quote(url))
 
         for service in STREAM_SERVICES:
             async with ClientSession().get(

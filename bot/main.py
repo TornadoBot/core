@@ -1,18 +1,21 @@
 from os import environ, listdir
 
-from discord import LoginFailure
-
 from bot import TornadoBot
 from config.settings import SETTINGS
-from lib.logging import log
+from lib.logger import get_logger
+
+log = get_logger(__name__)
 
 
 def main() -> None:
-    """Main entry point of the program."""
+    """
+    Entry point for the TornadoBot application.
+    Validates environment variables, loads cogs, and starts the bot.
 
-    # Check if all environment variables are present
-    if not all(key in environ for key in ["DISCORD_TOKEN", "SPOTIFY_CLIENT_ID", "SPOTIFY_CLIENT_SECRET"]):
-        log("Not all environment variables found. Check your .env file.", error=True)
+    :return: None
+    """
+    if not "DISCORD_TOKEN" in environ.keys():
+        log.error("Environment variable DISCORD_TOKEN is not set.")
         return
     bot: TornadoBot = TornadoBot(
         owner_ids=SETTINGS["OwnerIDs"],
@@ -20,15 +23,10 @@ def main() -> None:
         intents=SETTINGS["Intents"],
     )
 
-    # Load cogs
     for cog in listdir('cogs'):
         if cog.endswith('.py') and not cog.startswith('_'):
             bot.load_extension(f'cogs.{cog[:-3]}')
-
-    try:
-        bot.run(environ["DISCORD_TOKEN"])
-    except LoginFailure:
-        log("Failed to log in to Discord. Check your token.", error=True)
+    bot.run(environ["DISCORD_TOKEN"])
 
 
 if __name__ == "__main__":

@@ -3,8 +3,9 @@ from typing import Any
 from discord import Intents
 
 intents = Intents.default()
-intents.__setattr__("members", True)
-intents.__setattr__("messages", True)
+intents.members = True
+intents.messages = True
+intents.voice_states = True
 
 
 SETTINGS: dict[str, Any] = {

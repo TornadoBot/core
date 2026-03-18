@@ -1,6 +1,6 @@
 from discord import ApplicationContext, Member, Interaction, AutocompleteContext
 
-from bot.bot import TornadoBot
+from bot import TornadoBot
 
 
 class CustomApplicationContext(ApplicationContext):
