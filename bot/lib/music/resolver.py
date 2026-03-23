@@ -34,7 +34,7 @@ class Resolver:
         search = quote(f"{title} {artist}")
 
         isrc = await self._deezer.fetch_isrc(search, track_id)
-        stream_url = await self._hifi_api.fetch_stream(isrc)
+        stream_url = await self._hifi_api.search(isrc, search)
 
         if not stream_url:
             raise ValueError(f"Failed to fetch stream for ISRC: {isrc}")
