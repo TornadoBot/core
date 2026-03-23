@@ -5,3 +5,6 @@ PyNaCl==1.6.2
 millify
 redis
 booktype
+aiohttp-socks
+pproxy
+beautifulsoup4

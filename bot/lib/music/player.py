@@ -9,8 +9,8 @@ from lib.contexts import CustomApplicationContext
 from lib.enums import AudioPlayerLoopMode
 from lib.logger import get_logger
 from lib.music.queue import SongQueue
+from lib.music.resolver import Resolver
 from lib.music.song import Song
-from lib.music.source import TidalSource
 
 log = get_logger(__name__)
 
@@ -20,6 +20,7 @@ class Player:
         self.ctx = ctx
 
         self._queue = SongQueue(maxsize=200)
+        self._resolver = Resolver(self.ctx.bot.spotify, self.ctx.bot.deezer, self.ctx.bot.hifi_api)
         self._current = None
         self._message = None
         self._voice = None
@@ -78,11 +79,12 @@ class Player:
             try:
                 song = await wait_for(self._queue.get(), timeout=300)
             except TimeoutError:
+                self.cleanup()
                 return
 
             if isinstance(song.source, str):
                 try:
-                    source = await TidalSource.from_url(song.source, song.requester)
+                    source = await self._resolver.by_url(song.source, song.requester)
                 except Exception as e:
                     log.error(f"Failed to fetch source: {e}")
                     continue

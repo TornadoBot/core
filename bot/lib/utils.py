@@ -1,6 +1,7 @@
 from difflib import SequenceMatcher
 from random import randrange
 from time import strftime, gmtime
+from typing import Any
 
 from millify import millify
 
@@ -37,3 +38,23 @@ def random_hex(length: int) -> str:
 def similarity(a: str, b: str) -> float:
     """Calculates the similarity between two strings."""
     return SequenceMatcher(None, a, b).ratio()
+
+
+def find_key(data: dict | list, key: str) -> Any | None:
+    """Recursively search for a key in a nested dictionary.
+
+    :param data: The dictionary to search.
+    :param key: The key to find.
+    :returns: The value associated with the key, or ``None`` if not found.
+    """
+    if isinstance(data, dict):
+        if key in data:
+            return data[key]
+        for value in data.values():
+            if result := find_key(value, key):
+                return result
+    elif isinstance(data, list):
+        for item in data:
+            if result := find_key(item, key):
+                return result
+    return None

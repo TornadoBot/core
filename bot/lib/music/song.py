@@ -4,12 +4,12 @@ from urllib.parse import urlparse
 from discord import Member, Embed, EmbedAuthor
 
 from lib.enums import SongEmbedSize, AudioPlayerLoopMode
-from lib.music.source import TidalSource
+from lib.music.source import Source
 from lib.utils import format_time, truncate
 
 
 class Song:
-    def __init__(self, source: TidalSource | str, requester: Member = None) -> None:
+    def __init__(self, source: Source | str, requester: Member = None) -> None:
         if isinstance(source, str):
             if not requester:
                 raise ValueError("Requester must be provided when creating a Song from url")
@@ -18,7 +18,7 @@ class Song:
         self._requester = requester
 
     @property
-    def source(self) -> TidalSource | str:
+    def source(self) -> Source | str:
         """
         It is recommended to use the properties of this class instead of this property
         :return: The source of the song.
@@ -26,7 +26,7 @@ class Song:
         return self._source
 
     @source.setter
-    def source(self, source: TidalSource | str) -> None:
+    def source(self, source: Source | str) -> None:
         """
         Can be used to change the source of the song.
 
