@@ -116,7 +116,8 @@ class HifiApi:
         :raises ValueError: If no valid Tidal ID is found in the response.
         :raises aiohttp.ClientError: If the HTTP request fails.
         """
-        if data := await self._redis.get(f"tidal:{query}"):
+        key = f"tidal:search:{query}"
+        if data := await self._redis.get(key):
             tidal_id = data.decode()
             log.debug("Cache hit for %s -> tidal id %s", query, tidal_id)
             return tidal_id
@@ -142,7 +143,7 @@ class HifiApi:
             "i": None,
             "s": 60 * 60 * 24 * 30,
         }
-        await self._redis.set(f"tidal:{query}", tidal_id, ex=ex[param_name])
+        await self._redis.set(key, tidal_id, ex=ex[param_name])
         log.debug("Resolved %s -> tidal id %s via %s", query, tidal_id, provider)
         return tidal_id
 

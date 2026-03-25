@@ -9,6 +9,7 @@ from lib.contexts import CustomApplicationContext
 from lib.enums import AudioPlayerLoopMode
 from lib.logger import get_logger
 from lib.music.queue import SongQueue
+from lib.music.resolver import Resolver
 from lib.music.song import Song
 
 log = get_logger(__name__)
@@ -19,7 +20,7 @@ class Player:
         self.ctx = ctx
 
         self._queue = SongQueue(maxsize=200)
-        self._resolver = ctx.bot.resolver
+        self._resolver: Resolver = ctx.bot.resolver
         self._current = None
         self._message = None
         self._voice = None
@@ -82,13 +83,12 @@ class Player:
                 self.cleanup()
                 return
 
-            if isinstance(song.source, str):
+            if not song.source:
                 try:
-                    source = await self._resolver.by_url(song.source, song.requester)
+                    await self._resolver.resolve(song)
                 except Exception as e:
                     log.error(f"Failed to fetch source: {e}")
                     continue
-                song = Song(source)
 
             self._current = song
             self._voice.play(song.source, after=self._prepare_next)

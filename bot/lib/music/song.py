@@ -4,81 +4,67 @@ from urllib.parse import urlparse
 from discord import Member, Embed, EmbedAuthor
 
 from lib.enums import SongEmbedSize, AudioPlayerLoopMode
+from lib.music.dto.spotify_dto import SpotifyTrack
 from lib.music.source import Source
 from lib.utils import format_time, truncate
 
 
 class Song:
-    def __init__(self, source: Source | str, requester: Member = None) -> None:
-        if isinstance(source, str):
-            if not requester:
-                raise ValueError("Requester must be provided when creating a Song from url")
-
-        self._source = source
+    def __init__(
+            self,
+            url: str,
+            requester: Member = None,
+            metadata: SpotifyTrack = None,
+            source: Source | None = None
+    ) -> None:
+        self._url = url
+        self._metadata = metadata
         self._requester = requester
+        self._source = source
 
     @property
-    def source(self) -> Source | str:
-        """
-        It is recommended to use the properties of this class instead of this property
-        :return: The source of the song.
-        """
+    def source(self) -> Source | None:
         return self._source
 
     @source.setter
-    def source(self, source: Source | str) -> None:
-        """
-        Can be used to change the source of the song.
-
-        :param source: The new source of the song.
-        :return: None
-        """
+    def source(self, source: Source) -> None:
         self._source = source
 
     @property
     def requester(self) -> Member:
-        """
-        :return: The user who requested the song.
-        """
-        if isinstance(self.source, str):
-            return self._requester
-        return self._source.requester
+        return self._requester
 
     @property
-    def title(self) -> str | None:
-        """
-        :return: The title of the song.
-        """
-        if isinstance(self.source, str):
-            return None
-        return self._source.title
+    def title(self) -> str:
+        if self._metadata:
+            return self._metadata.title
+        return "Spotify Track"
 
     @property
     def artist(self) -> str | None:
-        """
-        :return: The artist of the song.
-        """
-        if isinstance(self.source, str):
-            return None
-        return self._source.artist
+        if self._metadata:
+            return self._metadata.artist_names
+        return None
 
     @property
     def url(self) -> str:
-        """
-        :return: The url of the song.
-        """
-        if isinstance(self.source, str):
-            return self._source
-        return self._source.url
+        return self._url
 
     @property
-    def duration(self) -> int | None:
-        """
-        :return: The duration of the song in seconds.
-        """
-        if isinstance(self.source, str):
-            return None
-        return 0
+    def duration(self) -> int:
+        if self._metadata:
+            return self._metadata.duration_ms // 1000
+        return 195  # average song length in 2020
+
+    @property
+    def thumbnail_url(self) -> str | None:
+        if self._metadata:
+            return self._metadata.cover_url
+        return None
+
+    def resolve(self, metadata: SpotifyTrack, source: Source) -> None:
+        self._metadata = metadata
+        self._source = source
 
     def get_embed(
             self,
@@ -103,7 +89,7 @@ class Song:
         :return: `discord.Embed`
         """
 
-        if isinstance(self.source, str):
+        if self._metadata is None:
             return Embed(
                 author=EmbedAuthor(
                     name="The current song is currently being processed.",
@@ -120,16 +106,11 @@ class Song:
         else:
             duration = format_time(self.duration)
 
-        description: str = (
-            f"[URL]({self.source.url}) **|** [{self.source.artist}]({self.url}) **|** "
+        embed.description = (
+            f"[URL]({self.url}) **|** {self.artist} **|** "
             f"{duration} **|** {self.requester.mention}"
         )
-        embed.description = description
-
-        if size == SongEmbedSize.SMALL:
-            return embed
-        embed.set_thumbnail(url=self.source.thumbnail_url)
-
+        embed.set_thumbnail(url=self.thumbnail_url)
         embed.add_field(
             name="Loop",
             value={

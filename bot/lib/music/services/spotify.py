@@ -1,9 +1,10 @@
-from json import loads, dumps
+from json import loads
 
 from aiohttp import ClientSession
 from bs4 import BeautifulSoup
 from redis.asyncio import Redis
 
+from lib.music.dto.spotify_dto import SpotifyTrack
 from lib.utils import find_key
 
 
@@ -24,7 +25,7 @@ class Spotify:
         self._session = session
         self._redis = redis
 
-    async def fetch_track(self, track_id: str) -> dict:
+    async def fetch_track(self, track_id: str) -> SpotifyTrack:
         """Fetch metadata for a Spotify track.
 
         :param track_id: The Spotify track ID.
@@ -32,20 +33,20 @@ class Spotify:
         """
         return await self._acquire("track", track_id)
 
-    async def _acquire(self, _type: str, _id: str) -> dict:
+    async def _acquire(self, _type: str, _id: str) -> SpotifyTrack:
         """Return an entity from the cache or fetch it from Spotify.
 
         :param _type: The entity type, e.g. ``track``.
         :param _id: The entity ID.
         :returns: The entity object.
         """
-        key = f"{_type}:{_id}"
+        key = f"spotify:{_type}:{_id}"
         if data := await self._redis.get(key):
-            return loads(data)
+            return SpotifyTrack.from_json(data)
         url = f"{self.EMBED_URL}{_type}/{_id}"
         return await self._fetch(url, key)
 
-    async def _fetch(self, url: str, key: str) -> dict:
+    async def _fetch(self, url: str, key: str) -> SpotifyTrack:
         """Fetch the Spotify embed page and extract the entity object.
 
         Parses the ``__NEXT_DATA__`` script tag from the HTML response
@@ -68,7 +69,7 @@ class Spotify:
 
         if entity is None:
             raise ValueError(f"No entity found in response for {url}")
-
-        await self._redis.set(key, dumps(entity), ex=60 * 60 * 24 * 180)
-        return entity
+        entry = SpotifyTrack.from_dict(entity)
+        await self._redis.set(key, entry.to_json(), ex=60 * 60 * 24 * 180)
+        return entry
 
