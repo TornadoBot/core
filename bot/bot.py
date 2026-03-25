@@ -5,7 +5,7 @@ from discord import Bot
 from redis.asyncio import Redis
 
 from lib.logger import get_logger
-from lib.music.services.deezer import Deezer
+from lib.music.resolver import Resolver
 from lib.music.services.hifi_api import HifiApi
 from lib.music.services.spotify import Spotify
 from lib.proxy import Proxy
@@ -18,21 +18,21 @@ class TornadoBot(Bot):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.proxy = Proxy()
-
         self._session = None
         self._redis = None
+
+        self.proxy = Proxy()
         self.spotify = None
-        self.deezer = None
         self.hifi_api = None
+        self.resolver = None
 
     async def on_connect(self) -> None:
         self._session = ClientSession()
         self._redis = Redis(host=self.REDIS_HOST)
 
         self.spotify = Spotify(self._session, self._redis)
-        self.deezer = Deezer(self._session, self._redis)
         self.hifi_api = HifiApi(self._session, self._redis)
+        self.resolver = Resolver(self.spotify, self.hifi_api)
 
         await self.proxy.start()
 

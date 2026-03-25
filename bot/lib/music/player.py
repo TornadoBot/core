@@ -1,4 +1,4 @@
-from asyncio import Event, create_task, TimeoutError, wait_for
+from asyncio import Event, create_task, TimeoutError, wait_for, Task
 from collections import deque
 from typing import Any
 
@@ -9,7 +9,6 @@ from lib.contexts import CustomApplicationContext
 from lib.enums import AudioPlayerLoopMode
 from lib.logger import get_logger
 from lib.music.queue import SongQueue
-from lib.music.resolver import Resolver
 from lib.music.song import Song
 
 log = get_logger(__name__)
@@ -20,7 +19,7 @@ class Player:
         self.ctx = ctx
 
         self._queue = SongQueue(maxsize=200)
-        self._resolver = Resolver(self.ctx.bot.spotify, self.ctx.bot.deezer, self.ctx.bot.hifi_api)
+        self._resolver = ctx.bot.resolver
         self._current = None
         self._message = None
         self._voice = None
@@ -31,6 +30,7 @@ class Player:
         self._history = deque(maxlen=5)
 
         self._task = create_task(self._run())
+        self._task.add_done_callback(self._handle_exception)
 
     def __bool__(self) -> bool:
         return self.active
@@ -95,9 +95,17 @@ class Player:
             self.message = await self.send(embed=song.get_embed(self._loop, self._queue[:5]))
             await self._event.wait()
 
+    def _handle_exception(self, task: Task) -> None:
+        if task.exception():
+            log.error(
+                "Audio player for %s raised an exception: %s",
+                self.ctx.guild_id ,
+                task.exception()
+            )
+
     def _prepare_next(self, error=None) -> None:
         if error:
-            log.error(f"Player prepare_next method failed: {error}")
+            log.error(f"Voice failed: {error}")
         self._skip_votes.clear()
         self._event.set()
 

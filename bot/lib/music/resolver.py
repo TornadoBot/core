@@ -2,16 +2,14 @@ from urllib.parse import urlparse, ParseResult, quote
 
 from discord import Member
 
-from lib.music.services.deezer import Deezer
 from lib.music.services.hifi_api import HifiApi
 from lib.music.services.spotify import Spotify
 from lib.music.source import Source
 
 
 class Resolver:
-    def __init__(self, spotify: Spotify, deezer: Deezer, hifi_api: HifiApi) -> None:
+    def __init__(self, spotify: Spotify, hifi_api: HifiApi) -> None:
         self._spotify = spotify
-        self._deezer = deezer
         self._hifi_api = hifi_api
 
     async def by_url(self, url: str, requester: Member) -> Source:
@@ -33,10 +31,6 @@ class Resolver:
         artist = metadata["artists"][0]["name"]
         search = quote(f"{title} {artist}")
 
-        isrc = await self._deezer.fetch_isrc(search, track_id)
-        stream_url = await self._hifi_api.search(isrc, search)
-
-        if not stream_url:
-            raise ValueError(f"Failed to fetch stream for ISRC: {isrc}")
-
-        return Source(str(url), requester, stream_url, metadata=metadata)
+        if stream_url := await self._hifi_api.by_search(search):
+            return Source(str(url), requester, stream_url, metadata=metadata)
+        raise ValueError(f"Failed to fetch stream for: {search}")

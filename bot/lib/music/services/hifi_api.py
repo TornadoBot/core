@@ -1,5 +1,4 @@
 from base64 import b64decode
-from itertools import product
 from json import loads
 
 from aiohttp import ClientError, ClientSession, ClientTimeout
@@ -37,7 +36,29 @@ class HifiApi:
         self._session = session
         self._redis = redis
 
-    async def search(self, isrc: str = None, search: str = None) -> str | None:
+    async def by_isrc(self, isrc: str) -> str | None:
+        """Fetch a stream URL for the given ISRC code.
+
+        Iterates through all known proxy services and returns the first
+        working stream URL. Returns ``None`` if no service succeeds.
+
+        :param isrc: The ISRC code to fetch a stream for.
+        :returns: A stream URL, or ``None`` if no service returned one.
+        """
+        return await self._query_by(isrc=isrc)
+
+    async def by_search(self, search: str) -> str | None:
+        """Fetch a stream URL for the given search query.
+
+        Iterates through all known proxy services and returns the first
+        working stream URL. Returns ``None`` if no service succeeds.
+
+        :param search: The search query to fetch a stream for.
+        :returns: A stream URL, or ``None`` if no service returned one.
+        """
+        return await self._query_by(search=search)
+
+    async def _query_by(self, isrc: str = None, search: str = None) -> str | None:
         """Fetch a stream URL for the given ISRC code or search query.
 
         Iterates through all known proxy services and returns the first
@@ -47,7 +68,13 @@ class HifiApi:
         :param search: The search query to fetch a stream for.
         :returns: A stream URL, or ``None`` if no service returned one.
         """
-        for service, (param_name, query) in product(self.APIS, [("i", isrc), ("s", search)]):
+
+        query = isrc or search
+        if not query:
+            return None
+        param_name = "i" if isrc else "s"
+
+        for service in self.APIS:
             try:
                 tidal_id = await self._search(service, param_name, query)
             except ValueError:
@@ -72,7 +99,7 @@ class HifiApi:
             log.error("All services failed to resolve stream for %s", query)
             return None
 
-        log.info("Resolved stream for %s via %s", isrc, service)
+        log.info("Resolved stream for %s via %s", query, service)
         return stream_url
 
     async def _search(self, provider: str, param_name: str, query: str) -> str:
