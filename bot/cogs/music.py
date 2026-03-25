@@ -1,4 +1,4 @@
-from asyncio import TimeoutError
+from asyncio import TimeoutError, QueueFull
 
 from discord import slash_command, ClientException
 from discord.ext.commands import Cog
@@ -25,7 +25,7 @@ class Music(Cog):
         self._audio_players[guild_id] = player
 
     @slash_command()
-    async def join(self, ctx: CustomApplicationContext) -> None:
+    async def join(self, ctx: CustomApplicationContext) -> bool:
         """Joins a voice channel."""
 
         if ctx.author.voice is None:
@@ -34,7 +34,7 @@ class Music(Cog):
                 "You are not in a **voice channel**\n"
                 "→ Join one and run `/join` again"
             )
-            return
+            return False
 
         await ctx.defer()
 
@@ -46,7 +46,7 @@ class Music(Cog):
                 ":cross: **Connection failed_**\n"
                 f"Could not join {destination.mention}"
             )
-            return
+            return False
         except ClientException:
             channel = ctx.guild.voice_client.channel
 
@@ -55,13 +55,13 @@ class Music(Cog):
                     ":check2: **_Already here_**\n"
                     f"Connected to {channel.mention}"
                 )
-                return
+                return True
 
             await ctx.respond(
                 ":attention: **_Already connected_**\n"
                 f"Currently in {channel.mention}"
             )
-            return
+            return False
 
         player: Player = Player(ctx)
         player.voice = voice
@@ -71,18 +71,29 @@ class Music(Cog):
             f":check2: **_Connected_** to {destination.mention}\n"
             f"**Ready to play music.** Use `/play`"
         )
+        return True
 
     @slash_command()
     async def play(self, ctx: CustomApplicationContext, search: str):
         """Play a song."""
 
+        if not await self.join(ctx):
+            return
+
         # TODO: Add detailed feedback
         # TODO: Add support for other search types
         # TODO: Improve parameter documentation
-        # TODO: Add automatic join
 
         player: Player = self._audio_players.get(ctx.guild.id)
-        player.put(Song(search, ctx.author))
+
+        try:
+            player.put(Song(search, ctx.author))
+        except QueueFull:
+            await ctx.respond(
+                ":cross: **_Error_**\n"
+                "The queue is full. Please try again later."
+            )
+            return
         await ctx.respond(
             ":check: **_URL added_**\n"
             f"{search}"

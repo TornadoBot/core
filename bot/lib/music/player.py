@@ -70,6 +70,7 @@ class Player:
         create_task(self._voice.disconnect())
         if self.active:
             self._task.cancel()
+        self._message = None
 
     async def _run(self) -> None:
         while True:
