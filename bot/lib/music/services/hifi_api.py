@@ -1,5 +1,6 @@
 from base64 import b64decode
 from json import loads
+from urllib.parse import quote
 
 from aiohttp import ClientError, ClientSession, ClientTimeout
 from redis.asyncio import Redis
@@ -69,7 +70,7 @@ class HifiApi:
         :returns: A stream URL, or ``None`` if no service returned one.
         """
 
-        query = isrc or search
+        query = isrc or quote(search)
         if not query:
             return None
         param_name = "i" if isrc else "s"
@@ -78,10 +79,10 @@ class HifiApi:
             try:
                 tidal_id = await self._search(service, param_name, query)
             except ValueError:
-                log.warning("Service %s failed to resolve %s", service, query)
+                log.warning("%s failed to resolve tidal id for %s", service, query)
                 continue
             except ClientError as e:
-                log.error("Service %s failed: %s", service, e)
+                log.error("%s failed: %s", service, e)
                 continue
             break
         else:
@@ -90,7 +91,7 @@ class HifiApi:
 
         for service in self.APIS:
             try:
-                stream_url = await self._mainfest(service, tidal_id)
+                stream_url = await self._manifest(service, tidal_id)
             except (ValueError, ClientError):
                 log.warning("Service %s failed to fetch stream for tidal id %s", service, tidal_id)
                 continue
@@ -147,7 +148,7 @@ class HifiApi:
         log.debug("Resolved %s -> tidal id %s via %s", query, tidal_id, provider)
         return tidal_id
 
-    async def _mainfest(self, provider: str, tidal_id: str) -> str:
+    async def _manifest(self, provider: str, tidal_id: str) -> str:
         """Fetch a stream URL for a given Tidal track ID.
 
         :param provider: The base URL of the proxy service.

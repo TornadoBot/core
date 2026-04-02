@@ -7,8 +7,9 @@ from redis.asyncio import Redis
 from lib.logger import get_logger
 from lib.music.resolver import Resolver
 from lib.music.services.hifi_api import HifiApi
+from lib.music.services.reccobeats import ReccoBeats
 from lib.music.services.spotify import Spotify
-from lib.proxy import Proxy
+from lib.tor import Tor
 
 log = get_logger(__name__)
 
@@ -21,8 +22,9 @@ class TornadoBot(Bot):
         self._session = None
         self._redis = None
 
-        self.proxy = Proxy()
+        self.proxy = Tor()
         self.spotify = None
+        self.reccobeats = None
         self.hifi_api = None
         self.resolver = None
 
@@ -32,9 +34,11 @@ class TornadoBot(Bot):
 
         self.spotify = Spotify(self._session, self._redis)
         self.hifi_api = HifiApi(self._session, self._redis)
-        self.resolver = Resolver(self.spotify, self.hifi_api)
+        self.reccobeats = ReccoBeats(self._session, self._redis)
 
-        await self.proxy.start()
+        self.resolver = Resolver(self.spotify, self.reccobeats, self.hifi_api)
+
+        await self.proxy.connect()
 
     async def on_ready(self) -> None:
         log.info(f"Logged in as {self.user.name} ({self.user.id})")
@@ -42,5 +46,5 @@ class TornadoBot(Bot):
     async def close(self):
         await self._session.close()
         await self._redis.aclose()
-        await self.proxy.stop()
+        await self.proxy.disconnect()
         await super().close()

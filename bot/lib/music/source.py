@@ -16,11 +16,7 @@ class Source(PCMVolumeTransformer):
         'options': '-vn'
     }
 
-    def __init__(
-            self,
-            stream_url: str,
-            volume: float = 0.5
-    ) -> None:
+    def __init__(self, stream_url: str, volume: float = 0.5) -> None:
         super().__init__(FFmpegPCMAudio(stream_url, **self.FFMPEG_OPTIONS), volume)
 
     def reset(self) -> None:

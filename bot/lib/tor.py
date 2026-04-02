@@ -10,10 +10,10 @@ TOR_HOST = environ.get("TOR_HOST") or "127.0.0.1"
 log = get_logger(__name__)
 
 
-class Proxy:
+class Tor:
     _handler: Server | None = None
 
-    async def start(self) -> None:
+    async def connect(self) -> None:
         if self._handler:
             log.debug("Proxy already running, skipping start")
             return
@@ -24,7 +24,7 @@ class Proxy:
         self._handler = await server.start_server({"rserver": [remote]})
         log.info("Proxy started: 127.0.0.1:8080 tunneling via %s:9050", TOR_HOST)
 
-    async def stop(self) -> None:
+    async def disconnect(self) -> None:
         if not self._handler:
             log.debug("Proxy not running, skipping stop")
             return

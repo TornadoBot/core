@@ -1,6 +1,6 @@
 from asyncio import TimeoutError, QueueFull
 
-from discord import slash_command, ClientException
+from discord import slash_command, ClientException, VoiceChannel
 from discord.ext.commands import Cog
 
 from bot import TornadoBot
@@ -48,7 +48,7 @@ class Music(Cog):
             )
             return False
         except ClientException:
-            channel = ctx.guild.voice_client.channel
+            channel: VoiceChannel = ctx.guild.voice_client.channel # type: ignore
 
             if channel == destination:
                 await ctx.respond(
@@ -95,8 +95,7 @@ class Music(Cog):
             )
             return
         await ctx.respond(
-            ":check: **_URL added_**\n"
-            f"{search}"
+            f":check: **_[URL]({search}) added_**\n"
         )
 
 def setup(bot: TornadoBot) -> None:
