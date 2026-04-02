@@ -16,6 +16,12 @@ class ReccoBeats:
         self._limiter = AsyncLimiter(max_rate=3, time_period=5)
 
     async def get_isrc(self, track_id: str) -> str:
+        key = f"reccobeats:isrc:{track_id}"
+        if data := await self._redis.get(key):
+            return data.decode()
+        return await self._acquire(track_id, key)
+
+    async def _acquire(self, track_id: str, key: str) -> str:
         path = f"/v1/track"
         async with self._limiter:
             async with self._session.get(
@@ -28,4 +34,7 @@ class ReccoBeats:
 
         if not isrc:
             log.info("No isrc found for track %s", track_id)
+
+        await self._redis.set(key, isrc, ex=60 * 60 * 24 * 180)
+        log.info("isrc found for track %s", track_id)
         return isrc

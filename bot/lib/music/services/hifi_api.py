@@ -86,18 +86,19 @@ class HifiApi:
                 continue
             break
         else:
-            log.error("All services failed to resolve by %s %s", isrc, search)
             return None
 
         for service in self.APIS:
             try:
                 stream_url = await self._manifest(service, tidal_id)
-            except (ValueError, ClientError):
-                log.warning("Service %s failed to fetch stream for tidal id %s", service, tidal_id)
+            except ValueError:
+                log.warning("Service %s resolve stream for tidal id %s", service, tidal_id)
+                continue
+            except ClientError as e:
+                log.error("%s failed: %s", service, e)
                 continue
             break
         else:
-            log.error("All services failed to resolve stream for %s", query)
             return None
 
         log.info("Resolved stream for %s via %s", query, service)

@@ -97,11 +97,14 @@ class Player:
             await self._event.wait()
 
     def _handle_exception(self, task: Task) -> None:
-        if task.exception():
+        if task.cancelled():
+            return
+
+        if exception := task.exception():
             log.error(
                 "Audio player for %s raised an exception: %s",
                 self.ctx.guild_id ,
-                task.exception()
+                exception
             )
 
     def _prepare_next(self, error=None) -> None:
